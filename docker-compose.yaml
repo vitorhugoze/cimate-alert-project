@@ -1,0 +1,45 @@
+services:
+  waha:
+    image: devlikeapro/waha:gows-2026.6.1
+    container_name: waha
+    restart: unless-stopped
+    ports:
+      - "12052:3000"
+    environment:
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_DASHBOARD_ENABLED=true
+      - WAHA_DASHBOARD_USERNAME=wahaadmin
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_PASSWORD}
+      - WHATSAPP_SWAGGER_USERNAME=wahaadmin
+      - WHATSAPP_SWAGGER_PASSWORD=${WAHA_PASSWORD}
+  kafka-broker:
+    depends_on:
+      - waha
+    image: wurstmeister/kafka:2.13-2.6.3
+    container_name: kafka-broker
+    restart: unless-stopped
+    ports:
+      - "12055:9092"
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://kafka-broker:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  climate-alert-consumer:
+    depends_on:
+      - kafka-broker
+    image: climate-alert-consumer:latest
+    container_name: climate-alert-consumer
+    restart: unless-stopped
+    volumes:
+      - consumer_db:/db
+  climate-alert-producer:
+    depends_on:
+      - climate-alert-consumer
+    image: climate-alert-producer:latest
+    container_name: climate-alert-producer
+    restart: unless-stopped
+    environment:
+      - GOOGLE_CLIMATE_API_KEY=${GOOGLE_CLIMATE_API_KEY}
+
+volumes:
+  consumer_db:
