@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: climate-alert-producer
+  namespace: climate-alert
+  labels:
+    app: climate-alert-producer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: climate-alert-producer
+  template:
+    metadata:
+      labels:
+        app: climate-alert-producer
+    spec:
+      imagePullSecrets:
+        - name: gcr-credentials
+      containers:
+        - name: climate-alert-producer
+          image: gcr.io/SEU_PROJETO/climate-alert-producer:latest
+          env:
+            - name: BROKER_ADDRESS
+              value: "kafka:9092"
+            - name: GOOGLE_CLIMATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: GOOGLE_CLIMATE_API_KEY

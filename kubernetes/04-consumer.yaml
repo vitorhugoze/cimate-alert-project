@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: consumer-db
+  namespace: climate-alert
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: climate-alert-consumer
+  namespace: climate-alert
+  labels:
+    app: climate-alert-consumer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: climate-alert-consumer
+  template:
+    metadata:
+      labels:
+        app: climate-alert-consumer
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: climate-alert-consumer
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: climate-alert-consumer
+          image: gcr.io/SEU_PROJETO/climate-alert-consumer:latest
+          env:
+            - name: BROKER_ADDRESS
+              value: "kafka:9092"
+            - name: WAHA_URL
+              value: "http://waha:3000"
+            - name: WAHA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: WAHA_API_KEY
+            - name: WAHA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: WAHA_PASSWORD
+          volumeMounts:
+            - name: consumer-db
+              mountPath: /db
+              readOnly: true
+      volumes:
+        - name: consumer-db
+          persistentVolumeClaim:
+            claimName: consumer-db

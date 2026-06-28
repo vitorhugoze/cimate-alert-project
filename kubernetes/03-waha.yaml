@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: waha-sessions
+  namespace: climate-alert
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: waha-media
+  namespace: climate-alert
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waha
+  namespace: climate-alert
+  labels:
+    app: waha
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: waha
+  # Garante que somente 1 pod rode por vez (importante para os volumes RWO)
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: waha
+    spec:
+      containers:
+        - name: waha
+          image: devlikeapro/waha:gows-2026.6.1
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: WAHA_DASHBOARD_ENABLED
+              value: "true"
+            - name: WAHA_DASHBOARD_USERNAME
+              value: "wahaadmin"
+            - name: WHATSAPP_SWAGGER_USERNAME
+              value: "wahaadmin"
+            - name: WAHA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: WAHA_API_KEY
+            - name: WAHA_DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: WAHA_PASSWORD
+            - name: WHATSAPP_SWAGGER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: climate-alert-secrets
+                  key: WAHA_PASSWORD
+          volumeMounts:
+            - name: waha-sessions
+              mountPath: /app/.sessions
+            - name: waha-media
+              mountPath: /app/.media
+      volumes:
+        - name: waha-sessions
+          persistentVolumeClaim:
+            claimName: waha-sessions
+        - name: waha-media
+          persistentVolumeClaim:
+            claimName: waha-media
+
+---
+
+# Serviço interno — usado pelos outros pods (consumer) para chamar a API do WAHA
+apiVersion: v1
+kind: Service
+metadata:
+  name: waha
+  namespace: climate-alert
+  labels:
+    app: waha
+spec:
+  selector:
+    app: waha
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: waha-external
+  namespace: climate-alert
+  labels:
+    app: waha
+spec:
+  selector:
+    app: waha
+  type: NodePort
+  ports:
+    - name: dashboard
+      port: 12052       # Porta interna do serviço
+      targetPort: 3000  # Porta do container
+      nodePort: 32052   # Porta que estará aberta no IP do seu Host/Nó
