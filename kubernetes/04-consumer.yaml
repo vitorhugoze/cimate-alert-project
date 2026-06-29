@@ -38,7 +38,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: climate-alert-consumer
-          image: gcr.io/SEU_PROJETO/climate-alert-consumer:latest
+          image: ghcr.io/vitorhugoze/climate-alert-consumer:latest
           env:
             - name: BROKER_ADDRESS
               value: "kafka:9092"
@@ -57,7 +57,7 @@ spec:
           volumeMounts:
             - name: consumer-db
               mountPath: /db
-              readOnly: true
+              readOnly: false
       volumes:
         - name: consumer-db
           persistentVolumeClaim:

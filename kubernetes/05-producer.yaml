@@ -16,10 +16,10 @@ spec:
         app: climate-alert-producer
     spec:
       imagePullSecrets:
-        - name: gcr-credentials
+        - name: climate-alert-secrets
       containers:
         - name: climate-alert-producer
-          image: gcr.io/SEU_PROJETO/climate-alert-producer:latest
+          image: ghcr.io/vitorhugoze/climate-alert-producer:latest
           env:
             - name: BROKER_ADDRESS
               value: "kafka:9092"
