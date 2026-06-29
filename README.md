@@ -1,6 +1,6 @@
 # Climate Alert Project
 
-Sistema de monitoramento climático com envio de alertas via WhatsApp, orquestrado via Kubernetes.
+Sistema de monitoramento climático com envio de alertas via WhatsApp, construido utilizando mensageria Kafka e orquestrado via Kubernetes.
 
 ---
 
